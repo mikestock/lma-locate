@@ -231,9 +231,10 @@ class DataPacket:
     #0x2  0010
     #0x1  0001
 
-    def __init__(self, inputString, version ):
+    def __init__(self, inputString, version, phaseDiff=0 ):
         self.inputString = inputString
         self.version     = version
+        self.phaseDiff   = phaseDiff
         #decode the words
         self.words = struct.unpack( '<9h', inputString )
 
@@ -255,8 +256,14 @@ class DataPacket:
             self.decode_12()
 
     def decode_12( self ):
+        samplePeriod = 1e9/( 25000000 + self.phaseDiff )    #in ns
+        windowLength = 80000    #80us
 
         self.aboveThresh = (words[0] >> 11) | ( (words[2]&0xFF00)>>4 )
-        self.nano        =  words[0] & 0x07FF
-        self.micro       =  words[1] & 0x3FFF
-        self.maxData     = (words[2]& 0x00FF)<<2
+        self.ticks       = (words[0] & 0x07FF)  #called nano by WR
+        self.window      = (words[1] & 0x3FFF)  #called micro by WR
+        self.maxData     = (words[2] & 0x00FF)<<2
+        
+        #use the window number and ticks to get the actual time of this event
+        #accurate to 1 ns
+        self.nano        = self.windowLength*80000 + int( self.ticks*samplePeriod )

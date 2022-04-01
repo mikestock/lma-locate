@@ -1,0 +1,182 @@
+# Data entered on June 5, 2008 by Harald Edens <edens@nmt.edu>
+#
+# data format:
+#    station mnemonic
+#    station ID
+#    latitude (deg)
+#    longitude (deg)
+#    altitude AMSL (m)
+#    cable delay (ns)
+#    LMA board revision #
+#    LMA receiver channel
+#
+# network name
+Wallops 2011
+# Center of array is C (X-15):
+37.842850
+-75.477629
+-19.960000
+#Station A, Blockhouse1
+Blockhouse
+A
+37.836644
+-75.485812
+-23.810000
+0
+3
+3
+#Station B, Radar3
+Radar3
+B
+37.840900
+-75.484217
+-24.720000
+0
+3
+3
+#Station C, X-15
+X-15
+C
+37.842850
+-75.477629
+-19.960000
+0
+3
+3
+#Station D, Helipad
+Helipad
+D
+37.871855
+-75.441879
+-19.420000
+0
+3
+3
+#Station E, U-80
+U-80
+E
+37.859307
+-75.509507
+-21.040000
+0
+3
+3
+#Station F, Airport
+Airport
+F
+37.943741
+-75.472773
+-16.470000
+0
+3
+3
+#Station G, Highschool
+Highschool
+G
+37.941949
+-75.364892
+-20.000000
+0
+3
+3
+#Station H, UAV
+UAV
+H
+37.825164
+-75.496242
+-20.340000
+0
+3
+3
+#Station DC A  Virginia
+Virginia
+O
+38.8330417
+-77.2376700
+106.00
+140
+3
+10
+#Sta_info: C  GMU
+GMU
+Q
+38.7565633
+-77.5213139
+70.98
+50
+3
+10
+#Sta_info: D  BELTSVILLE
+BELTSVILLE
+R
+39.0564853
+-76.8756164
+45.27
+90
+3
+10
+#Sta_info: H  Hopkins
+Hopkins
+V
+39.1639869
+-76.8970092
+122.64
+26
+3
+10
+#Sta_info: I  Howard
+Howard
+I
+38.9217969
+-77.0207906
+40.22
+-27
+3
+10
+#Sta_info: J  STER
+STER
+J
+38.9771714
+-77.4836206
+67.65
+87
+3
+10
+#Sta_info: K  Montgomery
+Montgomery
+K
+39.0976419
+-77.1605467
+133.33
+45
+3
+10
+#Sta_info: L  CSM
+CSM
+L
+38.5588022
+-77.0093456
+39.36
+36
+3
+10
+#Sta_info: M  UMD-AG
+UMD-AG
+M
+38.8598377
+-76.7773587
+30.33
+12
+2
+10
+#Sta_info: N  WOODBRIDGE
+WOODBRIDGE
+N
+38.6186233
+-77.2933894
+31.68
+8
+2
+10
+END
+
