@@ -149,8 +149,6 @@ class RawLMA:
                 warnings.warn( "RawLMA.find_status encountered condition which shouldn't happen" )
                 break
 
-            print (self.lat,self.lon,self.alt,self.vel, self.statusLocations[-1])
-
         #we didn't add the first status packet to the list, and that's ok 
         #because there are no data packets associated with it (they're in the previous file)
         #but, we would like to add in the location, to make later math a little easier
@@ -191,7 +189,6 @@ class RawLMA:
 
         self.inputFile.seek( readStart )
         for i in range( triggerCount ):
-            print( i, triggerCount)
             if self.inputFile.tell() >= readEnd:
                 raise Exception( "RawLMA.read - data packet reading is out of bounds, %i>=%i"%(self.inputFile.tell(), readEnd))
             d = DataPacket( self.inputFile.read(6), version=version, phaseDiff=phaseDiff )
@@ -222,7 +219,6 @@ class StatusPacket:
         self.words = struct.unpack( '<9h', inputString )
 
         if not all( [v<0 for v in self.words] ):
-            print (self.words)
             raise Exception( "Malformed status packet doesn't follow bit pattern" )
         #get the version, we do this with masks and fun stuff
         self.version = (self.words[0]>>7)	&0x3f	#version
@@ -260,8 +256,6 @@ class StatusPacket:
         # TODO - handle the 12 second cycle
         # self.gpsInfo      = (self.words[7] &0x7FFF) | (self.words[1]<<2)&0x8000
         self.gpsInfo      = (self.words[7] &0x7FFF) | (self.words[1]&0x2000)<<2
-        print( self.triggerCount )
-        print( self.year, self.month, self.day, self.hour, self.minute, self.second, self.threshold, self.fifoStatus, self.id, self.phaseDiff, self.gpsInfo)
 
 class DataPacket:
 
@@ -286,7 +280,6 @@ class DataPacket:
         #the data packet should be +, -, +
         pattern = [v<0 for v in self.words]
         if not pattern == [False, True, False]:
-            print (self.words)
             raise Exception( "Malformed data packet doesn't follow bit pattern" )
     
         self.decode()
