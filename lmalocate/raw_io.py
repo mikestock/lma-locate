@@ -8,11 +8,13 @@ In:
   raw lma v9 (10us)
 """
 
-import struct
-import os
-import sys
-import time
-import warnings
+import struct, os, sys, time, warnings
+import numpy as np
+
+
+dataFrameDtype = [ ('nano', 'i'),
+                   ('power', 'f'),
+                   ('aboveThresh', 'i')]
 
 class RawLMA:
 
@@ -153,9 +155,52 @@ class RawLMA:
         #because there are no data packets associated with it (they're in the previous file)
         #but, we would like to add in the location, to make later math a little easier
         self.statusLocations.append( 0 )
+        self.statusPackets.append( None )   #the first status shouldn't be used
+
         #the information on the status packets is reversed
         self.statusLocations.reverse()
         self.statusPackets.reverse()
+
+    def read_frame( self, iStatus):
+        """
+        Read in all the datapackets associated with the ith status message
+
+        returns a structured numpy array
+        """
+        
+
+        if iStatus <= 0 or iStatus >= len(self.statusLocations) :
+            raise Exception( "Can't read the %ith collection of data, choose number between 1 and %i"%(iStatus, len(self.statusLocations)-1) )
+
+
+        #we get the start and end point of our read from the statusLocations
+        #those are file locations.  We need to offset the start point by the 
+        #size of 1 statusPacket though
+        readStart = self.statusLocations[ iStatus-1 ]+self.statusSize
+        readEnd   = self.statusLocations[ iStatus ]
+
+        #Get some information we'll need from the assoicated status packet
+        statusPacket = self.statusPackets[ iStatus ]
+        version   = statusPacket.version    #needed for dataPacket format
+        phaseDiff = statusPacket.phaseDiff  #only if we want good timinh
+        triggerCount= statusPacket.triggerCount #this is how many dataPackets there will be
+
+        #data is going into this thing.  
+        #the structured type is needlessly fancy.  Could be worse and be a pandas dataframe thing
+        dataFrame = np.zeros( triggerCount, dtype=dataFrameDtype)
+
+        self.inputFile.seek( readStart )
+        for i in range( triggerCount ):
+            print( i, triggerCount)
+            if self.inputFile.tell() >= readEnd:
+                raise Exception( "RawLMA.read - data packet reading is out of bounds, %i>=%i"%(self.inputFile.tell(), readEnd))
+            d = DataPacket( self.inputFile.read(6), version=version, phaseDiff=phaseDiff )
+            
+            dataFrame['nano'][i]        = d.nano
+            dataFrame['power'][i]       = d.power
+            dataFrame['aboveThresh'][i] = d.aboveThresh
+        
+        return dataFrame, statusPacket
 
 class StatusPacket:
 
@@ -236,7 +281,7 @@ class DataPacket:
         self.version     = version
         self.phaseDiff   = phaseDiff
         #decode the words
-        self.words = struct.unpack( '<9h', inputString )
+        self.words = struct.unpack( '<3h', inputString )
 
         #the data packet should be +, -, +
         pattern = [v<0 for v in self.words]
@@ -247,7 +292,7 @@ class DataPacket:
         self.decode()
     
 
-    def self.decode( self ):
+    def decode( self ):
         """
         Yeah, this is just a mapping between version numbers, and decode 
         implementations.
@@ -259,11 +304,13 @@ class DataPacket:
         samplePeriod = 1e9/( 25000000 + self.phaseDiff )    #in ns
         windowLength = 80000    #80us
 
-        self.aboveThresh = (words[0] >> 11) | ( (words[2]&0xFF00)>>4 )
-        self.ticks       = (words[0] & 0x07FF)  #called nano by WR
-        self.window      = (words[1] & 0x3FFF)  #called micro by WR
-        self.maxData     = (words[2] & 0x00FF)<<2
+        self.aboveThresh = (self.words[0] >> 11) | ( (self.words[2]&0xFF00)>>4 )
+        self.ticks       = (self.words[0] & 0x07FF)  #called nano by WR
+        self.window      = (self.words[1] & 0x3FFF)  #called micro by WR
+        self.maxData     = (self.words[2] & 0x00FF)
         
         #use the window number and ticks to get the actual time of this event
         #accurate to 1 ns
-        self.nano        = self.windowLength*80000 + int( self.ticks*samplePeriod )
+        self.nano        = self.window*windowLength + int( self.ticks*samplePeriod )
+        #convert maxData to power in dBm
+        self.power       = 0.488*self.maxData -111.0
