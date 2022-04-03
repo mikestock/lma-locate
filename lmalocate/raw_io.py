@@ -165,7 +165,14 @@ class RawLMA:
 
         returns a structured numpy array
         """
-        
+        ###
+        # Profiling indicates that the bottle neck for reading data is in the decoding
+        # rather than in the reading.  If it were the read, we could probably improve 
+        # things by reading larger blocks all at once
+        # The decoding is all the bit-shift stuff that happens because of the uniquely 
+        # anoying way that Rison has split data between words in the file.  
+        # Speeding this up will require moving the decode methods over to Cython
+        # Current performance benchmark: 1 ten minute file is read and decoded in about 4 seconds
 
         if iStatus <= 0 or iStatus >= len(self.statusLocations) :
             raise Exception( "Can't read the %ith collection of data, choose number between 1 and %i"%(iStatus, len(self.statusLocations)-1) )
@@ -218,20 +225,57 @@ class StatusPacket:
         #decode the words
         self.words = struct.unpack( '<9h', inputString )
 
+        #v8/9 status messages only have 6 words
+        #v10+ status messages have 9 words to add in phase and gps information
+        #get the version, we do this with masks and fun stuff
+        #note: the spec for v8/9 says 6 bits are used for version, and 1 for phase count
+        #      the spec for v12  says 7 bits are used for version
+        #this is bad, it means we can't be sure we've decoded the version correctly.
+        #the issue isn't massive, phase_count is unlikely to get big for v8/9 because 
+        #it still has the phase locked loop in place, and the msb for version won't 
+        #flip to 1 until version 64 (and we're on version 13 now).  It'll be some 
+        #years before this is a problem.  For now, we're going to only decode a 6bit 
+        #version number, since that's safest.  
+        self.version = (self.words[0]>>7) &0x3f 
+        if self.version < 10:
+            self.words = self.words[:6]
+        
+        #we've already decoded the version number, if this fails the version 
+        #was probably complete trash.  Oh well
         if not all( [v<0 for v in self.words] ):
             raise Exception( "Malformed status packet doesn't follow bit pattern" )
-        #get the version, we do this with masks and fun stuff
-        self.version = (self.words[0]>>7)	&0x3f	#version
+
         self.decode()
 
     def decode( self ):
+        #the various decode methods all look very similar, since changes 
+        #in the data format happened gradually over time.  That means there 
+        #a bunch of copy-paste code lying around, but in this case I think 
+        #that's for the better, as it issolates the decoding used for each 
+        #version, without muddying the situation with share methods for the 
+        #sake of sharing.  
         if self.version == 10 or self.version == 11:
             self.decode_1011()
+        elif self.version == 12 or self.version == 13:
+            self.decode_1213()
         else:
             raise Exception( 'Unknown raw data version %i'%self.version )
 
+    def decode_89( self ):
+        #reference data_format_v8_revised.pdf
+        self.year         =  self.words[0] &0x7F + 2000
+        self.threshold    =  self.words[1] &0xFF
+        self.fifoStatus   = (self.words[2]>>12)&0x07
+        self.second       = (self.words[2]>>6 )&0x3F
+        self.minute       =  self.words[2] &0x3F
+        self.hour         = (self.words[3]>>9)&0x1F
+        self.day          = (self.words[3]>>4)&0x1F
+        self.month        =  self.words[3] &0x0F
+
     def decode_1011( self ):
         #reference data_format_v12.pdf
+        #but with the network ID portion removed
+        #which is why this is so similar to decode_1213
         self.year         =  self.words[0] &0x7F + 2000
         self.threshold    =  self.words[1] &0xFF
         self.fifoStatus   = (self.words[2]>>12)&0x07
@@ -246,6 +290,36 @@ class StatusPacket:
         #in less Bill fashion, he used 8 bits to encode, even though ASCII only has 128 values
         #(even less if you skip the first 64 characters)
         self.id           = chr(self.id+64)
+        self.netid        = ''
+        self.phaseDiff    =  self.words[6] &0x7FFF
+        #sign bit stored elsewhere
+        if (self.words[1]>>14)&0x1 == 1:
+            self.phaseDiff *= -1
+        
+        ###
+        # GPS info is updated on a 12 second cycle
+        # TODO - handle the 12 second cycle
+        # self.gpsInfo      = (self.words[7] &0x7FFF) | (self.words[1]<<2)&0x8000
+        self.gpsInfo      = (self.words[7] &0x7FFF) | (self.words[1]&0x2000)<<2
+
+    def decode_1213( self ):
+        #reference data_format_v12.pdf
+        self.year         =  self.words[0] &0x7F + 2000
+        self.threshold    =  self.words[1] &0xFF
+        self.fifoStatus   = (self.words[2]>>12)&0x07
+        self.second       = (self.words[2]>>6 )&0x3F
+        self.minute       =  self.words[2] &0x3F
+        self.hour         = (self.words[3]>>9)&0x1F
+        self.day          = (self.words[3]>>4)&0x1F
+        self.month        =  self.words[3] &0x0F
+        self.triggerCount =  self.words[4] &0x3FFF
+        self.id           = (self.words[1]>>5)&0x80 | (self.words[5]>>8)&0x7F
+        self.netid        =  self.words[5] & 0x00FF
+        #in typical Bill fashion, he's offset the ID by 64, to skip the non-letter values
+        #in less Bill fashion, he used 8 bits to encode, even though ASCII only has 128 values
+        #(even less if you skip the first 64 characters)
+        self.id           = chr(self.id+64)
+        self.netid        = chr(self.netid+64)
         self.phaseDiff    =  self.words[6] &0x7FFF
         #sign bit stored elsewhere
         if (self.words[1]>>14)&0x1 == 1:
@@ -307,3 +381,12 @@ class DataPacket:
         self.nano        = self.window*windowLength + int( self.ticks*samplePeriod )
         #convert maxData to power in dBm
         self.power       = 0.488*self.maxData -111.0
+
+
+if __name__ == '__main__':
+    #do a quick test
+
+    lmaRawData = RawLMA( '../../not_in_distro/example_data/LW_WestTexas_Llano_160908_012000.dat' )
+    for i in range( 1, len( lmaRawData.statusLocations ) ):
+        df, statusPacket = lmaRawData.read_frame( i )
+    

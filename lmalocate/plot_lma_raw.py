@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import raw_io
-import os, sys
+import os, sys, time
 import numpy as np
 
 if __name__ == '__main__':
@@ -25,7 +25,9 @@ if __name__ == '__main__':
     triggers  = []
     power     = []
     seconds   = []
+    tStart = time.time()
     for i in range( 1, len( lmaRawData.statusLocations ) ):
+        print(i)
         #looking at the form of this, it's kinda stupid
         df, statusPacket = lmaRawData.read_frame( i )
 
@@ -34,7 +36,8 @@ if __name__ == '__main__':
         threshold.append( 0.488*statusPacket.threshold-111.0  )
         triggers.append( len(df) )
         seconds.append( i )
-        
+    print( 'fileRead in %1.2f seconds'%(time.time()-tStart) )
+
     aboveThresh = np.array( aboveThresh )
     power       = np.array( power )
 
