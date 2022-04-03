@@ -1,11 +1,13 @@
 #!/usr/bin/python
 #
-"""io
+"""raw_io
 Reads and writes various LMA data formats
 Support inlcudes:
 In:
-  raw lma v8 (80us)
-  raw lma v9 (10us)
+  raw lma v8  (80us)
+  raw lma v9  (10us)
+  raw lma v10 (80us)
+  raw lma v12 (80us)
 """
 
 import struct, os, sys, time, warnings
@@ -271,6 +273,18 @@ class StatusPacket:
         self.hour         = (self.words[3]>>9)&0x1F
         self.day          = (self.words[3]>>4)&0x1F
         self.month        =  self.words[3] &0x0F
+        #phaseDiff in this is called 'phase count' and is different
+        #note, there is another bit of this, but I'm assuming it's always 0
+        self.phaseDiff    = (self.words[1]>>8)&0x1F
+        #sign of phaseDiff
+        if (self.words[1]>>14)%2 == 1:
+            self.phaseDiff *= -1
+        self.triggerCount = (words[5]&0x1FF) | (words[4]&0x7F)<<9 
+        #the ID ought to be a char but I'm not sure how Rison excoded it
+        #will need example file to sort it out
+        #TODO - sort out character encoding
+        self.id           = (words[4]>>8)&0x7F
+        self.track        = (words[5]>>12)&0xF  #I'm not sure what this is
 
     def decode_1011( self ):
         #reference data_format_v12.pdf
