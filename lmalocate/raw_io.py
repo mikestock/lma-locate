@@ -381,7 +381,63 @@ class DataPacket:
         if self.version == 12 or self.version==10:
             self.decode_12()
 
+    def decode_8( self ):
+        #even version numbers are for 80us
+        #the us field is actually the window number, wider windows means less windows/second
+        #means this field needs less bits
+        #the ns field is the number of ticks the peak happens in the window.  Longer windows 
+        #means this number is bigger and needs more bits
+
+        #version 8 firmware still had the phase locked loop
+        samplePeriod = 1e9/( 25000000 )    #in ns
+        windowLength = 80000    #80us
+
+        #v8 and v12 are almost the same, except in the older data, 
+        #aboveThreshold is split between 3 words instead of 2
+        #TODO - verify that I have the middle shift right
+        self.aboveThresh = (self.words[0] >> 11) | ((self.words[1]&0x4000)>>10) | ((self.words[2]&0x7F00)>>4)
+        self.ticks       = (self.words[0] & 0x07FF)  #called nano by WR
+        self.window      = (self.words[1] & 0x3FFF)  #called micro by WR
+        self.maxData     = (self.words[2] & 0x00FF)
+        
+        #use the window number and ticks to get the actual time of this event
+        #accurate to 1 ns
+        self.nano        = self.window*windowLength + int( self.ticks*samplePeriod )
+        #convert maxData to power in dBm
+        self.power       = 0.488*self.maxData -111.0
+
+    def decode_9( self ):
+        #odd version numbers are for 10us
+        #the us field is actually the window number, narrower windows means more windows/second
+        #means this field needs more bits
+        #the ns field is the number of ticks the peak happens in the window.  Narrower windows 
+        #means this number is smaller and needs less bits
+
+        #version 9 firmware still had the phase locked loop
+        samplePeriod = 1e9/( 25000000 )    #in ns
+        windowLength = 10000    #80us
+
+        #v8 and v12 are almost the same, except in the older data, 
+        #aboveThreshold is split between 3 words instead of 2
+        #TODO - verify that I have the middle shift right
+        self.aboveThresh = (self.words[0] >> 11) | ((self.words[1]&0x4000)>>10) | ((self.words[2]&0x7F00)>>4)
+        self.ticks       = (self.words[0] & 0x00FF)  #called nano by WR
+        #TODO - verifty that I have the window shift right, this one is important
+        self.window      = (self.words[1] & 0x3FFF) | (self.words[0] &0x0700)<<6 #called micro by WR
+        self.maxData     = (self.words[2] & 0x00FF)
+        
+        #use the window number and ticks to get the actual time of this event
+        #accurate to 1 ns
+        self.nano        = self.window*windowLength + int( self.ticks*samplePeriod )
+        #convert maxData to power in dBm
+        self.power       = 0.488*self.maxData -111.0
+
     def decode_12( self ):
+        #even version numbers are for 80us
+        #the us field is actually the window number, wider windows means less windows/second
+        #means this field needs less bits
+        #the ns field is the number of ticks the peak happens in the window.  Longer windows 
+        #means this number is bigger and needs more bits
         samplePeriod = 1e9/( 25000000 + self.phaseDiff )    #in ns
         windowLength = 80000    #80us
 
