@@ -20,9 +20,10 @@ dataFrameDtype = [ ('nano', 'i'),
 
 class RawLMA:
 
-    def __init__ (self, inputPath ):
+    def __init__ (self, inputPath, decimated=False ):
         """
         inputPath = path to lma data file
+        decimated = [bool] - set to True if reading decimated (rt) LMA data
         """
 
         #lat/lon information
@@ -38,7 +39,8 @@ class RawLMA:
         self.brg = 0
 
         self.dataVersion = None #there's a number of different LMA raw data versions
-        self.inputPath    = inputPath
+        self.inputPath   = inputPath
+        self.decimated   = decimated
         #try opening the inputPath, that should work if it exists
         if os.path.exists( self.inputPath ):
             self.inputFile = open( self.inputPath, 'rb' )
@@ -86,6 +88,36 @@ class RawLMA:
         else:
             self.statusSize = 12
 
+        if self.decimated:
+            #this is way slower
+            self._search_forwards()
+        else:
+            #this is faster
+            self._search_backwards()
+
+    def _search_forwards( self ):
+        self.statusLocations.append( 0 )
+        self.statusPackets.append( None )   #the first status shouldn't be used
+
+        fileLocation = self.statusSize
+        while fileLocation < os.path.getsize( self.inputPath ):
+            self.inputFile.seek( fileLocation )
+            try:
+                statusPacket = StatusPacket( self.inputFile.read(self.statusSize) )
+                #if we could read the statusPacket, we're in the right spot
+                self.statusLocations.append( fileLocation )
+                self.statusPackets.append( statusPacket )
+
+                #GPS Stuff
+                self. decode_gpsInfo( statusPacket )
+
+                fileLocation += self.statusSize
+            
+            except:
+                #means that the bit pattern was wrong
+                fileLocation += 3
+
+    def _search_backwards(self):
         #now search for the remaining status packets in reverse, start by 
         #seeking to the end of the file
         self.inputFile.seek(0, 2)
@@ -95,6 +127,30 @@ class RawLMA:
             statusPacket = StatusPacket( self.inputFile.read(self.statusSize) )
             self.statusPackets.append( statusPacket )
 
+            #GPS Stuff
+            self. decode_gpsInfo( statusPacket )
+
+            #determine how far back to seek
+            if self.inputFile.tell() > statusPacket.triggerCount * 6 + self.statusSize:
+                self.inputFile.seek( -statusPacket.triggerCount * 6 -self.statusSize, 1)
+            else:
+                #this really shouldn't happen
+                #because the raw file should start with a status
+                #(and we used that fact to get the version)
+                warnings.warn( "RawLMA.find_status encountered condition which shouldn't happen" )
+                break
+
+        #we didn't add the first status packet to the list, and that's ok 
+        #because there are no data packets associated with it (they're in the previous file)
+        #but, we would like to add in the location, to make later math a little easier
+        self.statusLocations.append( 0 )
+        self.statusPackets.append( None )   #the first status shouldn't be used
+
+        #the information on the status packets is reversed
+        self.statusLocations.reverse()
+        self.statusPackets.reverse()
+
+    def decode_gpsInfo( self, statusPacket ):
             #handle GPS info
             if statusPacket.second %12 ==0:
                 #lat bytes 4/3
@@ -140,26 +196,6 @@ class RawLMA:
             elif statusPacket.second %12 ==11:
                 #temperature 
                 self.temp = (statusPacket.gpsInfo>>8)-40
-
-            #determine how far back to seek
-            if self.inputFile.tell() > statusPacket.triggerCount * 6 + self.statusSize:
-                self.inputFile.seek( -statusPacket.triggerCount * 6 -self.statusSize, 1)
-            else:
-                #this really shouldn't happen
-                #because the raw file should start with a status
-                #(and we used that fact to get the version)
-                warnings.warn( "RawLMA.find_status encountered condition which shouldn't happen" )
-                break
-
-        #we didn't add the first status packet to the list, and that's ok 
-        #because there are no data packets associated with it (they're in the previous file)
-        #but, we would like to add in the location, to make later math a little easier
-        self.statusLocations.append( 0 )
-        self.statusPackets.append( None )   #the first status shouldn't be used
-
-        #the information on the status packets is reversed
-        self.statusLocations.reverse()
-        self.statusPackets.reverse()
 
     def read_frame( self, iStatus):
         """
