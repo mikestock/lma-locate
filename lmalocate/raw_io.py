@@ -226,7 +226,11 @@ class RawLMA:
         statusPacket = self.statusPackets[ iStatus ]
         version   = statusPacket.version    #needed for dataPacket format
         phaseDiff = statusPacket.phaseDiff  #only if we want good timinh
-        triggerCount= statusPacket.triggerCount #this is how many dataPackets there will be
+        if not self.decimated:
+            triggerCount= statusPacket.triggerCount #this is how many dataPackets there will be
+        else:
+            #we can't trust the triggerCount for decimated data
+            triggerCount = int( (readEnd-readStart)/6 )
 
         #data is going into this thing.  
         #the structured type is needlessly fancy.  Could be worse and be a pandas dataframe thing
