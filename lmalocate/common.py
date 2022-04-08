@@ -7,6 +7,10 @@ from constants import *
 
 def latlonalt2xyz( lat,lon,alt ):
     #https://doi.org/10.1016/j.cageo.2019.104308
+    #accuracy of calculation method tested against distance.distance3d, 
+    #less than 0.5 meters of error across test of 10000 random distances < 200km 
+    #around the globe.  Differences may be related to distance3d adding curvature, or being approximate
+
     #converting from lat/lon to xyz is easy
     lat *= np.pi/180
     lon *= np.pi/180
