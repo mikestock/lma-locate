@@ -492,6 +492,132 @@ class DataPacket:
         #convert maxData to power in dBm
         self.power       = 0.488*self.maxData -111.0
 
+class Station:
+    """
+    Holder for information about a station or network
+    """
+    def __init__( self, name=None, id=None, location=None, delay=None, boardVersion=None, channel=None):
+        self.name = name
+        self.id = id
+        self.location = location
+        self.delay = delay
+        self.boardVersion = boardVersion
+        self.channel = channel
+
+class LocFile:
+    """
+    The location file for LMA data stores information on the location, and names of all the sensors
+    We can also get this location inforation from the raw data packets (dataVersion >= 10)
+    But, the data files do not include information about the cable delays.  And when processing 
+    RT data, sometimes there is not sufficient number of seconds in the file to allow decoding 
+    all location parameters (requires 12 seconds of data), and for older stations, the location 
+    of the GPS and the location of the antenna may not be the same.  
+
+    TLDR - even though the location information is store in the raw data, we still need a locFile
+
+    Format is serial, 1 parameter per line:
+    NetworkName <string>
+    NetworkCenterLat
+    NetworkCenterLon
+    NetworkCenterAlt (usually approximate)
+
+    StationName <string, descriptive>
+    StationID   <string, 1 character.  Lowercase indicates 10us data, uppercase 80us data>
+    StationLat
+    StationLon
+    StationAlt
+    StationDelays <ns, cable delay>
+    StationLMABoardVersion
+    StationReceiverChannel
+
+    station information is repeated for each station.  
+    Comments in the file are indicated with leading #
+    Comments can happen for any line
+    """
+    def __init__( self, inputPath=None ):
+        self.inputPath = inputPath 
+
+        if self.inputPath != None:
+            self.read()
+    
+    def read(self, inputPath = None):
+        #set the inputPath
+        if inputPath==None:
+            inputPath = self.inputPath
+        if inputPath==None:
+            #if it's still None, we have nothing to read
+            raise Exception( 'LocFile.read - No inputPath to read from')
+        filePointer = open( inputPath, 'r' )
+
+        self._read_network_info( filePointer )
+
+        #we need to read stationInfo in a loop
+        self.stations = []
+        while True:
+            #doing this is a try block is pretty janky, but will probably work
+            try:
+                self._read_station_info( filePointer )
+            except:
+                #_read_station_info throws an exception if it hits EOF
+                #TODO make this an eof exception, and just catch that
+                break
+        filePointer.close()
+
+    def _read_network_info( self, filePointer ):
+        lines = []
+        while len(lines) < 4:
+            l = filePointer.readline()
+            if l == '':
+                #we should at least have a \n in there, unless we've hit the EOF
+                raise Exception( 'LocFile._read_network_info - hit EOF')
+            l = l.strip()
+            if l[0] == '#':
+                continue
+            #TODO did we hit EOF?
+            lines.append( l )
+        
+        lat = float( lines[1] )
+        lon = float( lines[2] )
+        alt = float( lines[3] )
+        networkInfo = Station( name=lines[0], location=(lat,lon,alt) )
+
+        self.network = networkInfo
+
+    def _read_station_info( self, filePointer ):
+        lines = []
+        while len(lines) < 8:
+            l = filePointer.readline()
+            if l == '':
+                #we should at least have a \n in there, unless we've hit the EOF
+                raise Exception( 'LocFile._read_station_info - hit EOF')
+            l = l.strip()
+            if l[0] == '#':
+                continue
+            #TODO did we hit EOF?
+            lines.append( l )
+        #serial format is:
+        #name, id, lat, lon, alt, delay, boardVersion, channel
+        lat     = float( lines[2] )
+        lon     = float( lines[3] )
+        alt     = float( lines[4] )
+        delay   = float( lines[5] )
+        boardVersion = int( lines[6] )
+        channel = int( lines[7] )
+
+        stationInfo = Station( name=lines[0], id=lines[1], location=(lat,lon,alt), delay=delay, boardVersion=boardVersion, channel=channel)
+        self.stations.append( stationInfo )
+
+
+    def write(self, outputPath=None):
+        #set the inputPath
+        if outputPath==None:
+            #write to the same place we read from, this is actually dangerous and will 
+            #probably cause problems in the future when dumb people use the code
+            #I'm probably one of those dumb people
+            inputPath = self.inputPath
+        if outputPath==None:
+            #if it's still None, we have nothing to read
+            raise Exception( 'LocFile.write - No outputPath to read from')
 
 if __name__ == '__main__':
     #do a quick test
