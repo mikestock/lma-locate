@@ -53,7 +53,17 @@ class RawLMA:
         
         #we need to find the file locations of each of the status words
         #these will break up the file into 1 second chunks
-        self.find_status() 
+        self.find_status()
+
+        #finalize location stuff
+        if self.lat !=0 and self.lon != 0 and self.alt != 0:
+            self.geodesic  = self.lat, self.lon, self.alt
+            self.cartesian = latlonalt2xyz( *self.geodesic )
+        else:
+            #the location data was not set in the status words, 
+            #or maybe it was set incompletely 
+            self.geodesic  = None
+            self.cartesian = None
 
     def convert_latlon( self, gpsInt):
         """
@@ -349,7 +359,24 @@ class StatusPacket:
         if self.version < 10:
             self.words = self.words[:6]
         
-        #TODO - prototype attributes here
+        #Attribute prototyping
+        self.year         =  None
+        self.threshold    =  None
+        self.fifoStatus   =  None
+        self.second       =  None
+        self.minute       =  None
+        self.hour         =  None
+        self.day          =  None
+        self.month        =  None
+        self.phaseDiff    =  None
+        self.triggerCount =  None
+        self.id           =  None
+        self.netid        =  None
+        self.track        =  None
+
+        #these need to get set manually
+        self.geodesic     =  None
+        self.cartesian    =  None
 
         #we've already decoded the version number, if this fails the version 
         #was probably complete trash.  Oh well
