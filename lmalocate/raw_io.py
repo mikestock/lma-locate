@@ -496,10 +496,11 @@ class Station:
     """
     Holder for information about a station or network
     """
-    def __init__( self, name=None, id=None, location=None, delay=None, boardVersion=None, channel=None):
+    def __init__( self, name=None, id=None, geodesic=None, cartesian=None delay=None, boardVersion=None, channel=None):
         self.name = name
         self.id = id
-        self.location = location
+        self.geodesic = geodesic
+        self.cartesian = cartesian
         self.delay = delay
         self.boardVersion = boardVersion
         self.channel = channel
@@ -579,7 +580,9 @@ class LocFile:
         lat = float( lines[1] )
         lon = float( lines[2] )
         alt = float( lines[3] )
-        networkInfo = Station( name=lines[0], location=(lat,lon,alt) )
+        #convert to cartesian coordinates
+        x,y,z = latlonalt2xyz( lat,lon,alt )
+        networkInfo = Station( name=lines[0], geodesic=(lat,lon,alt), cartesian=(x,y,z) )
 
         self.network = networkInfo
 
@@ -604,7 +607,10 @@ class LocFile:
         boardVersion = int( lines[6] )
         channel = int( lines[7] )
 
-        stationInfo = Station( name=lines[0], id=lines[1], location=(lat,lon,alt), delay=delay, boardVersion=boardVersion, channel=channel)
+        #convert to cartesian coordinates
+        x,y,z = latlonalt2xyz( lat,lon,alt )
+
+        stationInfo = Station( name=lines[0], id=lines[1], geodesic=(lat,lon,alt), cartesian=(x,y,z) delay=delay, boardVersion=boardVersion, channel=channel)
         self.stations.append( stationInfo )
 
 
