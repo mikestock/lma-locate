@@ -237,7 +237,7 @@ class RawLMA:
 
         #data is going into this thing.  
         #the structured type is needlessly fancy.  Could be worse and be a pandas dataframe thing
-        dataFrame = np.zeros( triggerCount, dtype=dataFrameDtype)
+        dataArray = np.zeros( triggerCount, dtype=frameDtype)
 
         self.inputFile.seek( readStart )
         for i in range( triggerCount ):
@@ -245,11 +245,11 @@ class RawLMA:
                 raise Exception( "RawLMA.read - data packet reading is out of bounds, %i>=%i"%(self.inputFile.tell(), readEnd))
             d = DataPacket( self.inputFile.read(6), version=version, phaseDiff=phaseDiff )
             
-            dataFrame['nano'][i]        = d.nano
-            dataFrame['power'][i]       = d.power
-            dataFrame['aboveThresh'][i] = d.aboveThresh
+            dataArray['nano'][i]        = d.nano
+            dataArray['power'][i]       = d.power
+            dataArray['aboveThresh'][i] = d.aboveThresh
         
-        return dataFrame, statusPacket
+        return LMAFrame( statusPacket, inputArray=dataArray )
 
 class LMAFrame( ):
 
@@ -259,9 +259,10 @@ class LMAFrame( ):
         #get location information
         #The location in the raw data is initilized to 0 in the raw data,
         #so catch that, and set to None to indicate we don't know where we are
-        if statusPacket.lat !=0 and statusPacket.lon != 0 and statusPacket.alt != 0:
-            self.geodesic  = ( statusPacket.lat, statusPacket.lon, statusPacket.alt )
-            self.cartesian = latlonalt2xyz( *self.geodesic )
+        # if statusPacket.lat !=0 and statusPacket.lon != 0 and statusPacket.alt != 0:
+        #     self.geodesic  = ( statusPacket.lat, statusPacket.lon, statusPacket.alt )
+        #     self.cartesian = latlonalt2xyz( *self.geodesic )
+        if False: pass
         else:
             self.geodesic  = None
             self.cartesian = None
@@ -272,7 +273,7 @@ class LMAFrame( ):
         self.aboveThresh = None
 
         #the defaults to None if no inputArray given
-        self._arr = self.inputArray
+        self._arr = inputArray
 
         self.update()
     
@@ -313,7 +314,6 @@ class LMAFrame( ):
         self.nano        = self._arr['nano'][:]
         self.power       = self._arr['power'][:]
         self.aboveThresh = self._arr['aboveThresh'][:]
-
 
 class StatusPacket:
 
@@ -565,7 +565,7 @@ class Station:
     """
     Holder for information about a station or network
     """
-    def __init__( self, name=None, id=None, geodesic=None, cartesian=None delay=None, boardVersion=None, channel=None):
+    def __init__( self, name=None, id=None, geodesic=None, cartesian=None, delay=None, boardVersion=None, channel=None):
         self.name = name
         self.id = id
         self.geodesic = geodesic
@@ -680,9 +680,8 @@ class LocFile:
         #convert to cartesian coordinates
         x,y,z = latlonalt2xyz( lat,lon,alt )
 
-        stationInfo = Station( name=lines[0], id=id, geodesic=(lat,lon,alt), cartesian=(x,y,z) delay=delay, boardVersion=boardVersion, channel=channel)
+        stationInfo = Station( name=lines[0], id=id, geodesic=(lat,lon,alt), cartesian=(x,y,z), delay=delay, boardVersion=boardVersion, channel=channel)
         self.stations[ id ] = stationInfo
-
 
     def write(self, outputPath=None):
         #set the inputPath
