@@ -285,6 +285,8 @@ class StatusPacket:
         if self.version < 10:
             self.words = self.words[:6]
         
+        #TODO - prototype attributes here
+
         #we've already decoded the version number, if this fails the version 
         #was probably complete trash.  Oh well
         if not all( [v<0 for v in self.words] ):
