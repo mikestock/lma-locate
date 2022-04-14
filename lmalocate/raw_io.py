@@ -12,6 +12,9 @@ In:
 
 import struct, os, sys, time, warnings
 import numpy as np
+#TODO - change to relative imports
+from common import *
+from constants import *
 
 
 dataFrameDtype = [ ('nano', 'i'),
