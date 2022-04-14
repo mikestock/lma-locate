@@ -17,9 +17,9 @@ from common import *
 from constants import *
 
 
-dataFrameDtype = [ ('nano', 'i'),
-                   ('power', 'f'),
-                   ('aboveThresh', 'i')]
+frameDtype = [ ('nano', 'i'),
+               ('power', 'f'),
+               ('aboveThresh', 'i')]
 
 class RawLMA:
 
@@ -250,6 +250,70 @@ class RawLMA:
             dataFrame['aboveThresh'][i] = d.aboveThresh
         
         return dataFrame, statusPacket
+
+class LMAFrame( ):
+
+    def __init__( self, statusPacket, inputArray=None ):
+        self.statusPacket = statusPacket
+
+        #get location information
+        #The location in the raw data is initilized to 0 in the raw data,
+        #so catch that, and set to None to indicate we don't know where we are
+        if statusPacket.lat !=0 and statusPacket.lon != 0 and statusPacket.alt != 0:
+            self.geodesic  = ( statusPacket.lat, statusPacket.lon, statusPacket.alt )
+            self.cartesian = latlonalt2xyz( *self.geodesic )
+        else:
+            self.geodesic  = None
+            self.cartesian = None
+        
+        #protype attributes
+        self.nano = None
+        self.power = None
+        self.aboveThresh = None
+
+        #the defaults to None if no inputArray given
+        self._arr = self.inputArray
+
+        self.update()
+    
+    def append( self, nano, power, aboveThresh, update=True ):
+        """
+        """
+        #initialize underlying array
+        if self._arr is None:
+            self._arr = np.empty( 0, dtype=frameDtype )
+        
+        #appending is done by extending the array 1 element, and 
+        #then shoving the new data in at the end.  
+        #doing it this way does not require the _arr to be copied
+        N = len( self._arr )
+        self._arr.resize( (N+1,), refcheck=False )
+        self._arr[N] = nano,power,aboveThresh
+
+        if update: self.update()
+
+    def copy( self, inplace=True ):
+        """
+        Because of the opaque and fun way python and numpy handle pointers, 
+        sometimes you don't have a copy of stuff in memory when you think you do
+        Use this method to force the issue
+        """
+        if inplace:
+            self._arr = self._arr.copy()
+            self.update()
+        else:
+            frame = LMAFrame( self.statusPacket, inputArray=self._arr.copy() )
+            return frame
+
+    def update( self ):
+        """
+        """
+        #make sure we have something to update
+        if self._arr is None: return
+        self.nano        = self._arr['nano'][:]
+        self.power       = self._arr['power'][:]
+        self.aboveThresh = self._arr['aboveThresh'][:]
+
 
 class StatusPacket:
 
