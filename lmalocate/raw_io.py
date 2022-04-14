@@ -556,7 +556,7 @@ class LocFile:
         self._read_network_info( filePointer )
 
         #we need to read stationInfo in a loop
-        self.stations = []
+        self.stations = {}
         while True:
             #doing this is a try block is pretty janky, but will probably work
             try:
@@ -609,12 +609,13 @@ class LocFile:
         delay   = float( lines[5] )
         boardVersion = int( lines[6] )
         channel = int( lines[7] )
+        id      = lines[1]
 
         #convert to cartesian coordinates
         x,y,z = latlonalt2xyz( lat,lon,alt )
 
-        stationInfo = Station( name=lines[0], id=lines[1], geodesic=(lat,lon,alt), cartesian=(x,y,z) delay=delay, boardVersion=boardVersion, channel=channel)
-        self.stations.append( stationInfo )
+        stationInfo = Station( name=lines[0], id=id, geodesic=(lat,lon,alt), cartesian=(x,y,z) delay=delay, boardVersion=boardVersion, channel=channel)
+        self.stations[ id ] = stationInfo
 
 
     def write(self, outputPath=None):
