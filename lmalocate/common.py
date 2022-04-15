@@ -1,9 +1,32 @@
-import os, sys, time, warnings
+import os, sys, warnings
 import numpy as np
+import time, calendar   #I am forever annoyed that both are needed
 
 #local imports, these will have to be updated later
 import distance
 from constants import *
+
+###
+# the handling of time is shit in python
+# the 'modern' way is to do everything in datetime, but the church of datetime
+# wants you to stay in the church of datetime, and I really just want an epoch and a nano
+def timestamp2epoch( timestamp ):
+    #strip all non-numbers from the timeStamp
+    strippedTimestamp = ''
+    for c in timestamp:
+        if c.isdigit():
+            strippedTimestamp += c
+
+    #the first 14 numbers are for the date and time, the second 9 are the for fractional seconds
+    if len(strippedTimestamp) < 14+9:
+        #fill with 0's
+        strippedTimestamp += '0'*(14+9-len(strippedTimestamp))
+
+    #return epoch seconds, and nano seconds back
+    return calendar.timegm( time.strptime( strippedString[:14], '%Y%m%d%H%M%S' ) ), int( strippedString[14:] )
+
+def epoch2timestamp( epoch ):
+    return time.strftime( '%Y-%m-%dT%H:%M:%S', time.gmtime( t ) )
 
 def latlonalt2xyz( lat,lon,alt ):
     #https://doi.org/10.1016/j.cageo.2019.104308
