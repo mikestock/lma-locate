@@ -365,14 +365,14 @@ class StatusPacket:
             self.words = self.words[:6]
         
         #Attribute prototyping
-        self.year         =  None
+        self.year         =  0
+        self.month        =  0
+        self.day          =  0
+        self.hour         =  0
+        self.minute       =  0
+        self.second       =  0
         self.threshold    =  None
         self.fifoStatus   =  None
-        self.second       =  None
-        self.minute       =  None
-        self.hour         =  None
-        self.day          =  None
-        self.month        =  None
         self.phaseDiff    =  None
         self.triggerCount =  None
         self.id           =  None
@@ -389,6 +389,14 @@ class StatusPacket:
             raise Exception( "Malformed status packet doesn't follow bit pattern" )
 
         self.decode()
+
+    def calc_epoch( self ):
+        #it's surprisingly annoying converting from numerical values for
+        #year/month/day into an epoch
+        #the easiest way to do it is to convert to a string, and then back
+        #because of course that's what you need to do
+        timestamp = '%i%02i%02iT%02i:%02i:%02i'%(self.year, self.month, self.day, self.hour, self.minute, self.second)
+        self.epoch = timestamp2epoch( timestamp )
 
     def decode( self ):
         #the various decode methods all look very similar, since changes 
