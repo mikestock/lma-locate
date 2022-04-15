@@ -274,13 +274,14 @@ class LMAFrame( ):
         #get location information
         #The location in the raw data is initilized to 0 in the raw data,
         #so catch that, and set to None to indicate we don't know where we are
-        # if statusPacket.lat !=0 and statusPacket.lon != 0 and statusPacket.alt != 0:
-        #     self.geodesic  = ( statusPacket.lat, statusPacket.lon, statusPacket.alt )
-        #     self.cartesian = latlonalt2xyz( *self.geodesic )
-        if False: pass
-        else:
-            self.geodesic  = None
-            self.cartesian = None
+        
+        self.geodesic  = statusPacket.geodesic
+        self.cartesian = statusPacket.cartesian
+        self.epoch     = statusPacket.epoch
+
+        if self.epoch <= 0:
+            #something has gone wrong
+            warnings.warn( 'LMAFrame - epoch for frame set to value before LMA was invented')
         
         #protype attributes
         self.nano = None
@@ -389,6 +390,7 @@ class StatusPacket:
             raise Exception( "Malformed status packet doesn't follow bit pattern" )
 
         self.decode()
+        self.calc_epoch()
 
     def calc_epoch( self ):
         #it's surprisingly annoying converting from numerical values for
@@ -414,7 +416,7 @@ class StatusPacket:
 
     def decode_89( self ):
         #reference data_format_v8_revised.pdf
-        self.year         =  self.words[0] &0x7F + 2000
+        self.year         = (self.words[0] &0x7F) + 2000
         self.threshold    =  self.words[1] &0xFF
         self.fifoStatus   = (self.words[2]>>12)&0x07
         self.second       = (self.words[2]>>6 )&0x3F
@@ -439,7 +441,7 @@ class StatusPacket:
         #reference data_format_v12.pdf
         #but with the network ID portion removed
         #which is why this is so similar to decode_1213
-        self.year         =  self.words[0] &0x7F + 2000
+        self.year         = (self.words[0] &0x7F) + 2000
         self.threshold    =  self.words[1] &0xFF
         self.fifoStatus   = (self.words[2]>>12)&0x07
         self.second       = (self.words[2]>>6 )&0x3F
@@ -467,7 +469,7 @@ class StatusPacket:
 
     def decode_1213( self ):
         #reference data_format_v12.pdf
-        self.year         =  self.words[0] &0x7F + 2000
+        self.year         = (self.words[0] &0x7F) + 2000
         self.threshold    =  self.words[1] &0xFF
         self.fifoStatus   = (self.words[2]>>12)&0x07
         self.second       = (self.words[2]>>6 )&0x3F
