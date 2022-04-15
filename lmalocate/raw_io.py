@@ -237,6 +237,11 @@ class RawLMA:
 
         #Get some information we'll need from the assoicated status packet
         statusPacket = self.statusPackets[ iStatus ]
+        #set status GPS information
+        statusPacket.geodesic = self.geodesic
+        statusPacket.cartesian = self.cartesian
+
+        #get other things from the status packet
         version   = statusPacket.version    #needed for dataPacket format
         phaseDiff = statusPacket.phaseDiff  #only if we want good timinh
         if not self.decimated:
