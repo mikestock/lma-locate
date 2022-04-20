@@ -17,13 +17,13 @@ def timestamp2epoch( timestamp ):
         if c.isdigit():
             strippedTimestamp += c
 
-    #the first 14 numbers are for the date and time, the second 9 are the for fractional seconds
-    if len(strippedTimestamp) < 14+9:
+    #the first 14 numbers are for the date and time
+    if len(strippedTimestamp) < 14:
         #fill with 0's
-        strippedTimestamp += '0'*(14+9-len(strippedTimestamp))
+        strippedTimestamp += '0'*(14-len(strippedTimestamp))
 
     #return epoch seconds, and nano seconds back
-    return calendar.timegm( time.strptime( strippedString[:14], '%Y%m%d%H%M%S' ) ), int( strippedString[14:] )
+    return calendar.timegm( time.strptime( strippedTimestamp[:14], '%Y%m%d%H%M%S' ) )
 
 def epoch2timestamp( epoch ):
     return time.strftime( '%Y-%m-%dT%H:%M:%S', time.gmtime( t ) )
