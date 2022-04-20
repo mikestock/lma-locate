@@ -660,6 +660,9 @@ class LocFile:
     def __init__( self, inputPath=None ):
         self.inputPath = inputPath 
 
+        self.sensors = {}
+        self.network = None
+
         if self.inputPath != None:
             self.read()
     
@@ -675,7 +678,7 @@ class LocFile:
         self._read_network_info( filePointer )
 
         #we need to read stationInfo in a loop
-        self.stations = {}
+        self.sensors = {}
         while True:
             #doing this is a try block is pretty janky, but will probably work
             try:
@@ -734,7 +737,7 @@ class LocFile:
         x,y,z = latlonalt2xyz( lat,lon,alt )
 
         stationInfo = Station( name=lines[0], id=id, geodesic=(lat,lon,alt), cartesian=(x,y,z), delay=delay, boardVersion=boardVersion, channel=channel)
-        self.stations[ id ] = stationInfo
+        self.sensors[ id ] = stationInfo
 
     def write(self, outputPath=None):
         #set the inputPath
