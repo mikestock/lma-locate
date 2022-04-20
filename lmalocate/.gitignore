@@ -1,0 +1,6 @@
+#ignore all cpython bytecode stuff
+*.pyc
+#ignore all generated cython modules
+build/
+*.so
+*.c
