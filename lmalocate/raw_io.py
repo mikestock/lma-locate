@@ -21,7 +21,7 @@ frameDtype = [ ('nano', 'i'),
                ('power', 'f'),
                ('aboveThresh', 'i')]
 
-class RawLMA:
+class RawLMAFile:
 
     def __init__ (self, inputPath, decimated=False ):
         """
@@ -96,6 +96,8 @@ class RawLMA:
         #so we know how big a status packet is
         statusPacket = StatusPacket( self.inputFile.read(18) )
         self.version = statusPacket.version
+        self.id      = statusPacket.id
+        self.netid   = statusPacket.netid
         if self.version >= 10:
             self.statusSize = 18
         else:
@@ -117,6 +119,10 @@ class RawLMA:
             self.inputFile.seek( fileLocation )
             try:
                 statusPacket = StatusPacket( self.inputFile.read(self.statusSize) )
+                if statusPacket.id != self.id or statusPacket.netid != self.netid:
+                    #well that's funny, these should be the same for all status packets in the file
+                    raise Exception( 'RawLMAFile._searchForwards : statusPacket id not consistent in file')
+                    
                 #if we could read the statusPacket, we're in the right spot
                 self.statusLocations.append( fileLocation )
                 self.statusPackets.append( statusPacket )
@@ -139,6 +145,10 @@ class RawLMA:
             self.statusLocations.append( self.inputFile.tell() )
             statusPacket = StatusPacket( self.inputFile.read(self.statusSize) )
             self.statusPackets.append( statusPacket )
+
+            if statusPacket.id != self.id or statusPacket.netid != self.netid:
+                #well that's funny, these should be the same for all status packets in the file
+                raise Exception( 'RawLMAFile._searchForwards : statusPacket id not consistent in file')
 
             #GPS Stuff
             self. decode_gpsInfo( statusPacket )
