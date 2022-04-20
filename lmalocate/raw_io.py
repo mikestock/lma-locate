@@ -122,7 +122,7 @@ class RawLMAFile:
                 if statusPacket.id != self.id or statusPacket.netid != self.netid:
                     #well that's funny, these should be the same for all status packets in the file
                     raise Exception( 'RawLMAFile._searchForwards : statusPacket id not consistent in file')
-                    
+
                 #if we could read the statusPacket, we're in the right spot
                 self.statusLocations.append( fileLocation )
                 self.statusPackets.append( statusPacket )
@@ -281,13 +281,14 @@ class LMAFrame( ):
     def __init__( self, statusPacket, inputArray=None ):
         self.statusPacket = statusPacket
 
-        #get location information
-        #The location in the raw data is initilized to 0 in the raw data,
-        #so catch that, and set to None to indicate we don't know where we are
-        
+        #copy a bunch of the statusPacket attributes over
+        #I think there's probably a better way to do this, with inheritence or somth
+        #but am too dumb to know how
         self.geodesic  = statusPacket.geodesic
         self.cartesian = statusPacket.cartesian
         self.epoch     = statusPacket.epoch
+        self.id        = statusPacket.id
+        self.netid     = statusPacket.netid
 
         if self.epoch <= 0:
             #something has gone wrong
