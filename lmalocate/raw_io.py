@@ -740,15 +740,16 @@ class LocFile:
         self.sensors[ id ] = stationInfo
 
     def write(self, outputPath=None):
+        #TODO - should implement this
         #set the inputPath
         if outputPath==None:
             #write to the same place we read from, this is actually dangerous and will 
             #probably cause problems in the future when dumb people use the code
             #I'm probably one of those dumb people
-            inputPath = self.inputPath
+            outputPath = self.inputPath
         if outputPath==None:
-            #if it's still None, we have nothing to read
-            raise Exception( 'LocFile.write - No outputPath to read from')
+            #if it's still None, we have nothing to write
+            raise Exception( 'LocFile.write - No outputPath to write to')
 
 if __name__ == '__main__':
     #do a quick test
