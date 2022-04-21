@@ -59,6 +59,9 @@ class RawLMAFile:
         #these will break up the file into 1 second chunks
         self.find_status()
 
+        #setup search dicts
+        self.make_frameEpochs( )
+
         #finalize location stuff
         if self.lat !=0 and self.lon != 0 and self.alt != 0:
             self.geodesic  = self.lat, self.lon, self.alt
@@ -68,6 +71,13 @@ class RawLMAFile:
             #or maybe it was set incompletely 
             self.geodesic  = None
             self.cartesian = None
+
+    def make_frameEpochs(self):
+        self.frameEpochs = {}
+        for iFrame in range( 1, len(self.statusPackets) ):
+            epoch = self.statusPackets[iFrame].epoch
+            self.frameEpochs[ epoch ] = iFrame
+
 
     def convert_latlon( self, gpsInt):
         """
