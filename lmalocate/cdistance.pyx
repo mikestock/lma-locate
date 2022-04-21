@@ -1,5 +1,18 @@
 from libc.math cimport cos, sin, sqrt, pi, atan2, atan, tan, asin
 
+def euclidean( double x1, double y1, double z1, double x2, double y2, double z2 ):
+    """
+    Calculates simple straight line distance between 2 locations in cartesian coords
+    This is very simple
+    """
+
+    cdef double D
+
+    D  = (x1-x2)**2
+    D += (y1-y2)**2
+    D += (z1-z2)**2
+    return sqrt( D )
+
 def pythagorean( double lt1, double ln1, double lt2, double ln2 ):
     """
     Implementation of the approximate geodesic distance on an 

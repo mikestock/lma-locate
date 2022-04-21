@@ -13,6 +13,12 @@ except:
     warnings.warn( 'cDistance library could not be imported, is it compiled?')
     Cython = True
 
+"""
+The distance library provides a bunch of wrappers around the cdistance library
+The overhead of the wrapper on execusion time is around 150ns per call 
+(on the test Ryzen 3700 machine).  For some distance methods, this overhead is
+more substantial than others
+"""
 
 def vincenty( geodesic1, geodesic2 ):
     """
@@ -25,7 +31,19 @@ def vincenty( geodesic1, geodesic2 ):
         return cdistance.vincenty( lt1, ln1, lt2, ln2)
     else:
         return pyVincenty( lt1, ln1, lt2, ln2)
-    
+
+def euclidean( cartesian1, cartesian2 ):
+    """
+    Calculates the euclidean distance between two cartesian points
+    This is as simple as it seems
+    """
+    x1,y1,z1 = cartesian1
+    x2,y2,z2 = cartesian2
+    if Cython:
+        return cdistance.euclidean( x1,y1,z1,x2,y2,z2 )
+    else:
+        return math.sqrt( (x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2 )
+
 def pyVincenty( lt1, ln1, lt2, ln2 ):
     """
     Adaptation of the Vincenty algorithm implementation by Maurycy
