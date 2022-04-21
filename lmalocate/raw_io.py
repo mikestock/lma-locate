@@ -41,6 +41,10 @@ class RawLMAFile:
         self.vel = 0
         self.brg = 0
 
+        #timing information
+        self.startEpoch = 0
+        self.endEpoch   = 0
+
         self.dataVersion = None #there's a number of different LMA raw data versions
         self.inputPath   = inputPath
         self.decimated   = decimated
@@ -98,6 +102,9 @@ class RawLMAFile:
         self.version = statusPacket.version
         self.id      = statusPacket.id
         self.netid   = statusPacket.netid
+        #this is the first status message, there are no frames associated with it
+        #but we can use it to get the starting epoch of the file
+        self.startEpoch = statusPacket.epoch+1  
         if self.version >= 10:
             self.statusSize = 18
         else:
@@ -122,6 +129,12 @@ class RawLMAFile:
                 if statusPacket.id != self.id or statusPacket.netid != self.netid:
                     #well that's funny, these should be the same for all status packets in the file
                     raise Exception( 'RawLMAFile._searchForwards : statusPacket id not consistent in file')
+                
+                #update ending epoch
+                if statusPacket.epoch > self.endEpoch: 
+                    #the statusPackets are time ordered, and we're searching forward.
+                    #this should always be true
+                    self.endEpoch = statusPacket.epoch
 
                 #if we could read the statusPacket, we're in the right spot
                 self.statusLocations.append( fileLocation )
@@ -149,6 +162,12 @@ class RawLMAFile:
             if statusPacket.id != self.id or statusPacket.netid != self.netid:
                 #well that's funny, these should be the same for all status packets in the file
                 raise Exception( 'RawLMAFile._searchForwards : statusPacket id not consistent in file')
+
+            #update ending epoch
+            if statusPacket.epoch > self.endEpoch: 
+                #the statusPackets are time ordered, and we're searching backwards.
+                #this should only be true once
+                self.endEpoch = statusPacket.epoch
 
             #GPS Stuff
             self. decode_gpsInfo( statusPacket )
@@ -383,6 +402,7 @@ class StatusPacket:
         self.hour         =  0
         self.minute       =  0
         self.second       =  0
+        self.epoch        =  0  #hopefully it doesn't stay 0
         self.threshold    =  None
         self.fifoStatus   =  None
         self.phaseDiff    =  None
