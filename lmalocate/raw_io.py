@@ -739,6 +739,9 @@ class LocFile:
         stationInfo = Station( name=lines[0], id=id, geodesic=(lat,lon,alt), cartesian=(x,y,z), delay=delay, boardVersion=boardVersion, channel=channel)
         self.sensors[ id ] = stationInfo
 
+    def add( self, station ):
+        self.sensors[ station.id ] = station 
+
     def write(self, outputPath=None):
         #TODO - should implement this
         #set the inputPath

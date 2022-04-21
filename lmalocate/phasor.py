@@ -10,6 +10,7 @@ import numpy as np
 #TODO - change to relative imports
 from common import *
 from constants import *
+import raw_io
 
 class Phasor( ):
 
@@ -21,7 +22,10 @@ class Phasor( ):
         """
         self.center  = center
         self.frames  = frames
-        self.locFile = locFile
+        if locFile == None:
+            self.loc = raw_io.LocFile()
+        else:
+            self.loc = locFile
 
         #the propagation model calculates the expected arrival time of a signal at a sensor
         self.propagationModel = propagationModel
@@ -52,7 +56,20 @@ class Phasor( ):
         eachother
         """
 
-        for sensorKey in self.frames:
+        for sensorId in self.frames:
+            #we may have information about this sensor from loc file
+            if sensorId in self.loc.sensos:
+                #we do have it, but we should test that it agrees
+                D = distance.vincenty( self.loc.sensors[sensorId].geodesic, self.frames[sensorId].geodesic )
+                if D > 10:
+                    warnings.warn( 'Phasor.set_sensor_locations: sensor %s has different location in loc and raw files'%sensorId )
+                #otherwise do nothing
+            else:
+                #we don't have this station, create station object
+                frame = self.frames[sensorId]
+                station = raw_io.Station( id=frame.id, geodesic=frame.geodesic, cartesian=frame.cartesian, delay=0)
+                self.loc.add( station )
+
 
 
     def phase_raw_data( self ):
