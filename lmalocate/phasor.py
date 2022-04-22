@@ -12,9 +12,20 @@ from common import *
 from constants import *
 import raw_io
 
+###
+# Propagation Models
+def euclidean_propagation( ob1, ob2 ):
+    """
+    Calculates the expected light propagation time difference 
+    in nanoseconds between two objects, using their cartesian 
+    locations
+    """
+    D = distance.euclidean( ob1.cartesian, ob2.cartesian )
+    return D/Cns
+
 class Phasor( ):
 
-    def __init__( self, center, frames, locFile=None, propagationModel=None, windowLength=80000, minSensors=5):
+    def __init__( self, center, frames, locFile=None, propagationModel=euclidean_propagation, windowLength=80000, minSensors=5):
         """
         center -    is the phase center of the phasor, 
                     in geodesic or cartesian depending on propagationModel
@@ -58,7 +69,7 @@ class Phasor( ):
 
         for sensorId in self.frames:
             #we may have information about this sensor from loc file
-            if sensorId in self.loc.sensos:
+            if sensorId in self.loc.sensors:
                 #we do have it, but we should test that it agrees
                 D = distance.vincenty( self.loc.sensors[sensorId].geodesic, self.frames[sensorId].geodesic )
                 if D > 10:
@@ -69,8 +80,6 @@ class Phasor( ):
                 frame = self.frames[sensorId]
                 station = raw_io.Station( id=frame.id, geodesic=frame.geodesic, cartesian=frame.cartesian, delay=0)
                 self.loc.add( station )
-
-
 
     def phase_raw_data( self ):
         """
