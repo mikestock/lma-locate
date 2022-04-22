@@ -8,12 +8,16 @@ Also, I keep tearing it to the ground, and re-writing it.
 -- this may not function in environments other than my own
 """
 
+#load in a whole bunch of raw data files
 inPaths = glob.glob( '/data/LMA/iop3/*120000.dat') 
 lmaFiles = []
 epoch = 0
 for inPath in inPaths:
     lmaFile = raw_io.RawLMAFile( inPath )
     lmaFiles.append( lmaFile )
+
+    #getting the startEpoch this way is a little dangerous 
+    #if all the files don't start at the same time
     if lmaFile.startEpoch > epoch:
         epoch = lmaFile.startEpoch
 
@@ -24,10 +28,16 @@ for i in range( 601 ):
     #collect frames from all LMA files related to current epoch
     frames = []
     for lmaFile in lmaFiles:
-        for iFrame in range( 1, len(lmaFile.statusPackets)):
-            if lmaFile.statusPackets[iFrame].epoch == epoch:
-                lmaFrame = lmaFile.read_frame( iFrame )
-                frames.append( lmaFrame )
-                break
 
+        #the epoch we're looking for should be in the 
+        #frameEpochs table, hopefully
+        if epoch in lmaFile.frameEpochs:
+            #great, now we don't have to loop over all the statuses
+            iFrame = lmaFile.frameEpochs[epoch]
+            lmaFrame = lmaFile.read_frame( iFrame )
+            frames.append( lmaFrame )
+        #else, this epoch doesn't exist, boo
+
+    #all of the epochs should have 7 files, 
+    #except of the last one which has 0
     print ('Read %i frames for epoch %i'%(len(frames), epoch) )
