@@ -27,6 +27,7 @@ for i in range( 601 ):
     epoch += 1
     #collect frames from all LMA files related to current epoch
     frames = []
+    stations = []
     for lmaFile in lmaFiles:
 
         #the epoch we're looking for should be in the 
@@ -36,8 +37,16 @@ for i in range( 601 ):
             iFrame = lmaFile.frameEpochs[epoch]
             lmaFrame = lmaFile.read_frame( iFrame )
             frames.append( lmaFrame )
+            #create station from frame information
+            stations.append( raw_io.Station( id=lmaFrame.id, geodesic=lmaFrame.geodesic, cartesian=lmaFrame.cartesian, delay=0) )
         #else, this epoch doesn't exist, boo
 
     #all of the epochs should have 7 files, 
     #except of the last one which has 0
     print ('Read %i frames for epoch %i'%(len(frames), epoch) )
+
+    #we should be able to create a locFile from these frames
+    #it should at least not error
+    locFile = raw_io.LocFile()
+    for station in stations:
+        locFile.add( station )
