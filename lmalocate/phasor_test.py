@@ -39,8 +39,7 @@ for iLoop in range( 10 ):
             #frame goes into dict
             frames[ frame.id ] = frame
     
-    center = locFile.network.geodesic
-    p = phasor.Phasor( center, frames, locFile=locFile )
+    p = phasor.Phasor( frames, locFile=locFile, cartesian=locFile.network.cartesian )
 
     
 

@@ -38,7 +38,7 @@ for i in range( 601 ):
             lmaFrame = lmaFile.read_frame( iFrame )
             frames.append( lmaFrame )
             #create station from frame information
-            stations.append( raw_io.Station( id=lmaFrame.id, geodesic=lmaFrame.geodesic, cartesian=lmaFrame.cartesian, delay=0) )
+            stations.append( raw_io.Station( id=lmaFrame.id, geodetic=lmaFrame.geodetic, cartesian=lmaFrame.cartesian, delay=0) )
         #else, this epoch doesn't exist, boo
 
     #all of the epochs should have 7 files, 

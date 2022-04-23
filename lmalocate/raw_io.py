@@ -64,12 +64,12 @@ class RawLMAFile:
 
         #finalize location stuff
         if self.lat !=0 and self.lon != 0 and self.alt != 0:
-            self.geodesic  = self.lat, self.lon, self.alt
-            self.cartesian = latlonalt2xyz( *self.geodesic )
+            self.geodetic  = self.lat, self.lon, self.alt
+            self.cartesian = latlonalt2xyz( *self.geodetic )
         else:
             #the location data was not set in the status words, 
             #or maybe it was set incompletely 
-            self.geodesic  = None
+            self.geodetic  = None
             self.cartesian = None
 
     def make_frameEpochs(self):
@@ -277,7 +277,7 @@ class RawLMAFile:
         #Get some information we'll need from the assoicated status packet
         statusPacket = self.statusPackets[ iStatus ]
         #set status GPS information
-        statusPacket.geodesic = self.geodesic
+        statusPacket.geodetic = self.geodetic
         statusPacket.cartesian = self.cartesian
 
         #get other things from the status packet
@@ -313,7 +313,7 @@ class LMAFrame( ):
         #copy a bunch of the statusPacket attributes over
         #I think there's probably a better way to do this, with inheritence or somth
         #but am too dumb to know how
-        self.geodesic  = statusPacket.geodesic
+        self.geodetic  = statusPacket.geodetic
         self.cartesian = statusPacket.cartesian
         self.epoch     = statusPacket.epoch
         self.id        = statusPacket.id
@@ -422,7 +422,7 @@ class StatusPacket:
         self.track        =  None
 
         #these need to get set manually
-        self.geodesic     =  None
+        self.geodetic     =  None
         self.cartesian    =  None
 
         #we've already decoded the version number, if this fails the version 
@@ -648,10 +648,10 @@ class Station:
     """
     Holder for information about a station or network
     """
-    def __init__( self, name=None, id=None, geodesic=None, cartesian=None, delay=None, boardVersion=None, channel=None):
+    def __init__( self, name=None, id=None, geodetic=None, cartesian=None, delay=None, boardVersion=None, channel=None):
         self.name = name
         self.id = id
-        self.geodesic = geodesic
+        self.geodetic = geodetic
         self.cartesian = cartesian
         self.delay = delay
         self.boardVersion = boardVersion
@@ -737,7 +737,7 @@ class LocFile:
         alt = float( lines[3] )
         #convert to cartesian coordinates
         x,y,z = latlonalt2xyz( lat,lon,alt )
-        networkInfo = Station( name=lines[0], geodesic=(lat,lon,alt), cartesian=(x,y,z) )
+        networkInfo = Station( name=lines[0], geodetic=(lat,lon,alt), cartesian=(x,y,z) )
 
         self.network = networkInfo
 
@@ -766,7 +766,7 @@ class LocFile:
         #convert to cartesian coordinates
         x,y,z = latlonalt2xyz( lat,lon,alt )
 
-        stationInfo = Station( name=lines[0], id=id, geodesic=(lat,lon,alt), cartesian=(x,y,z), delay=delay, boardVersion=boardVersion, channel=channel)
+        stationInfo = Station( name=lines[0], id=id, geodetic=(lat,lon,alt), cartesian=(x,y,z), delay=delay, boardVersion=boardVersion, channel=channel)
         self.sensors[ id ] = stationInfo
 
     def add( self, station ):

@@ -20,13 +20,13 @@ The overhead of the wrapper on execusion time is around 150ns per call
 more substantial than others
 """
 
-def vincenty( geodesic1, geodesic2 ):
+def vincenty( geodetic1, geodetic2 ):
     """
     This is a wrapper around the cython vincenty implementation that 
-    takes geodesics as input cause it's easier
+    takes geodetics as input cause it's easier
     """
-    lt1,ln1,z1 = geodesic1
-    lt2,ln2,z2 = geodesic2
+    lt1,ln1,z1 = geodetic1
+    lt2,ln2,z2 = geodetic2
     if Cython:
         return cdistance.vincenty( lt1, ln1, lt2, ln2)
     else:

@@ -25,14 +25,15 @@ def euclidean_propagation( ob1, ob2 ):
 
 class Phasor( ):
 
-    def __init__( self, center, frames, locFile=None, propagationModel=euclidean_propagation, windowLength=80000, minSensors=5):
+    def __init__( self, frames, locFile=None, propagationModel=euclidean_propagation, cartesian=None, geodetic=None, windowLength=80000, minSensors=5):
         """
         center -    is the phase center of the phasor, 
-                    in geodesic or cartesian depending on propagationModel
+                    in geodetic or cartesian depending on propagationModel
         frames -    dict of LMAFrames of data
         """
-        self.center  = center
-        self.frames  = frames
+        self.cartesian = cartesian
+        self.geodetic  = geodetic
+        self.frames    = frames
         if locFile == None:
             self.loc = raw_io.LocFile()
         else:
@@ -67,18 +68,21 @@ class Phasor( ):
         eachother
         """
 
+        self.sensorIds = []
         for sensorId in self.frames:
+            #add this ID to a sorted list for use later
+            self.sensorIds.append( sensorId )
             #we may have information about this sensor from loc file
             if sensorId in self.loc.sensors:
                 #we do have it, but we should test that it agrees
-                D = distance.vincenty( self.loc.sensors[sensorId].geodesic, self.frames[sensorId].geodesic )
+                D = distance.vincenty( self.loc.sensors[sensorId].geodetic, self.frames[sensorId].geodetic )
                 if D > 10:
                     warnings.warn( 'Phasor.set_sensor_locations: sensor %s has different location in loc and raw files'%sensorId )
                 #otherwise do nothing
             else:
                 #we don't have this station, create station object
                 frame = self.frames[sensorId]
-                station = raw_io.Station( id=frame.id, geodesic=frame.geodesic, cartesian=frame.cartesian, delay=0)
+                station = raw_io.Station( id=frame.id, geodetic=frame.geodetic, cartesian=frame.cartesian, delay=0)
                 self.loc.add( station )
 
     def phase_raw_data( self ):
@@ -88,10 +92,62 @@ class Phasor( ):
         Calculates delay between sensors and phasor center
         Applies these delays to the raw data, and adds all data into sorted array
         """
-    
+
+        self.sortedPeaks = np.empty( [0,4], dtype='i' )
+
+        for i in range( len( self.sensorIds) ):
+            id = self.sensorIds[i]
+            #calculate the propagation time
+            dt = self.propagationModel( self, self.frames[id] )
+            print( '%s - %i'%(id, dt) )
+
+            #extend the sortedPeaks array
+            N = len( self.sortedPeaks )
+            M = len( self.frames[id].nano )
+            self.sortedPeaks.resize( [N+M,4] )
+            #source time
+            self.sortedPeaks[N:,0] = self.frames[id].nano-dt
+            #sensor ID
+            self.sortedPeaks[N:,1] = i
+            #arrival time
+            self.sortedPeaks[N:,2] = self.frames[id].nano
+            #power
+            self.sortedPeaks[N:,3] = self.frames[id].power.astype('i')
+        
+        #there should be a better way to do this in-place, but for now this will work
+        i = self.sortedPeaks[:,0].argsort()
+        self.sortedPeaks = self.sortedPeaks[i]
+
     def find_initial_guesses(self):
         """
         find_initial_guesses
 
         loops over sorted array looking for possible locations
         """
+        self.guesses = []
+        lastGuess = 0
+        iGuess = 0
+        while iGuess < len(self.sortedPeaks)-self.minSensors :
+            n = 1
+            while self.sortedPeaks[iGuess+n,0]-self.sortedPeaks[iGuess,0] < self.windowLength:
+                n += 1
+            if n > self.minSensors and iGuess+n > lastGuess:
+                #count sensors
+                sensors = set()
+                guess = np.arange( iGuess, iGuess+n )
+                for i in guess:
+                    sensors.add( self.sortedPeaks[i,1] )
+                if len(sensors) > self.minSensors:
+                    self.guesses.append( guess )
+                    lastGuess = iGuess+n
+                    iGuess = iGuess+1
+                else:
+                    iGuess += 1
+            else:
+                iGuess += 1
+
+class Solution():
+    def __init__(self, peaks, loc, propagationModel, geodetic=None, cartesian=None ):
+        self.peaks = peaks
+        self.loc   = loc
+        self.propagationModel = propagationModel
