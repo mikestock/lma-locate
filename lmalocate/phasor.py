@@ -107,8 +107,8 @@ class Phasor( ):
             self.sortedPeaks.resize( [N+M,4] )
             #source time
             self.sortedPeaks[N:,0] = self.frames[id].nano-dt
-            #sensor ID
-            self.sortedPeaks[N:,1] = i
+            #sensor ID - encode as int for easier cython schenanegans 
+            self.sortedPeaks[N:,1] = ord( id )
             #arrival time
             self.sortedPeaks[N:,2] = self.frames[id].nano
             #power
@@ -148,6 +148,52 @@ class Phasor( ):
 
 class Solution():
     def __init__(self, peaks, loc, propagationModel, geodetic=None, cartesian=None ):
-        self.peaks = peaks
-        self.loc   = loc
+        self.peaks     = peaks
+        self.loc       = loc
         self.propagationModel = propagationModel
+        self.geodetic  = geodetic
+        self.cartesian = cartesian
+
+        self.select_peaks()
+        self.resid = self.calc_resid() 
+
+    def calc_residual( self, target=None ):
+        """
+        the target here is the location you're testing.  to use the propagation model right 
+        now that's supposed to be an object with cartesian or geodetic attributes
+        which sounds a lot like a 'Station' object
+        """
+        #if we're not passed a target, calculate the residual for where 
+        #we think the solution is now.  
+        if target == None: target = self
+
+        #loop over peaks and apply the propagationModel to each
+        resid = []
+        for peak in self.select_peaks:
+            #ugh, I need to convert the numerical id to a ascii id for this
+            id = chr( peak[1] )
+            dt = peak[2] - self.propagationModel( target, self.loc[id] )
+            resid.append( dt )
+        
+        return resid
+            
+
+    def select_peaks(self, nearest=False):
+        #we always include the first peak
+        self.selectedPeaks = [ self.peaks[0] ]
+        selectedSensors = {self.peaks[0][1]}
+        for i in range( 1, len( self.peaks) ):
+            #use each sensor once
+            if self.peaks[i][1] in selectedSensors: continue
+            #find 'best' peak for this sensor
+            bestPeak = self.peaks[i]
+            for j in range( i+1, len( self.peaks) ):
+                #not the same sensor
+                if self.peaks[j][1] != bestPeak[1]: continue
+                if self.peaks[j][3] > bestPeak[3]:
+                    bestPeak = self.peaks[j]
+            
+            #we've found the best peak, might be the same one we started with
+            #add it to the list
+            self.selectedPeaks.append( bestPeak )
+            selectedSensors.add( bestPeak[1] )  #this is a set, so we don't use 2 of the same sensor
