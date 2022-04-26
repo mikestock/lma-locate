@@ -12,6 +12,8 @@ Also, I keep tearing it to the ground, and re-writing it.
 inLmaPaths = glob.glob( '/data/LMA/iop3/*120000.dat') 
 inLocPath  = '/data/LMA/iop3/mobile.loc'
 
+windowLength = 2000000
+
 #load up the location file
 locFile = raw_io.LocFile( inLocPath )
 
@@ -37,11 +39,11 @@ for iLoop in range( 10 ):
             iFrame = lmaFile.frameEpochs[epoch]
             frame = lmaFile.read_frame( iFrame )
             #decimate the crap of out this so we don't have too many initial guesses and everything is fastpanda
-            frame.decimate( 2000000 )
+            frame.decimate( windowLength )
             #frame goes into dict
             frames[ frame.id ] = frame
     
-    p = phasor.Phasor( frames, locFile=locFile, cartesian=locFile.network.cartesian )
+    p = phasor.Phasor( frames, locFile=locFile, cartesian=locFile.network.cartesian, windowLength=windowLength )
 
     
 

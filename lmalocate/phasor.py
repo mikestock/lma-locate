@@ -130,6 +130,9 @@ class Phasor( ):
             n = 1
             while self.sortedPeaks[iGuess+n,0]-self.sortedPeaks[iGuess,0] < self.windowLength:
                 n += 1
+                if iGuess+n >= len( self.sortedPeaks ):
+                    #we're trying to walk off the end of the array
+                    break
             if n > self.minSensors and iGuess+n > lastGuess:
                 #count sensors
                 sensors = set()
