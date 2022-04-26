@@ -353,7 +353,7 @@ class LMAFrame( ):
         """
         Because of the opaque and fun way python and numpy handle pointers, 
         sometimes you don't have a copy of stuff in memory when you think you do
-        Use this method to force the issue
+        Use this method to force the issue.  Can be done in-place
         """
         if inplace:
             self._arr = self._arr.copy()
@@ -361,6 +361,36 @@ class LMAFrame( ):
         else:
             frame = LMAFrame( self.statusPacket, inputArray=self._arr.copy() )
             return frame
+
+    def decimate( self, windowLength ):
+        _arr = np.empty( 0, dtype=frameDtype )
+
+        nano = 0
+        i = 0
+        N = 0
+        while nano+windowLength < 1e9 and i < len( self._arr ):
+            #skip forward?  Data is unevenly distributed
+            if self._arr['nano'][i] >= nano+windowLength:
+                nano += windowLength
+                continue
+            #inside this window, find the max sample
+            maxPeak = self._arr[i]
+            while self._arr['nano'][i] < nano+windowLength:
+                #we keep the highest power peak each time
+                if self._arr['power'][i] > maxPeak['power']:
+                    maxPeak = self._arr[i]
+                i += 1
+                #for the last window, we might run off the end of the array
+                #don't
+                if i >= len( self._arr ): break
+            #append the maxPeak to the new array
+            _arr.resize( (N+1,), refcheck=False )
+            _arr[N] = maxPeak
+            N += 1
+
+        #apply the new _arr to self, this destroys the old _arr
+        self._arr = _arr
+        self.update()
 
     def update( self ):
         """
@@ -471,12 +501,12 @@ class StatusPacket:
         #sign of phaseDiff
         if (self.words[1]>>14)%2 == 1:
             self.phaseDiff *= -1
-        self.triggerCount = (words[5]&0x1FF) | (words[4]&0x7F)<<9 
+        self.triggerCount = (self.words[5]&0x1FF) | (self.words[4]&0x7F)<<9 
         #the ID ought to be a char but I'm not sure how Rison excoded it
         #will need example file to sort it out
         #TODO - sort out character encoding
-        self.id           = (words[4]>>8)&0x7F
-        self.track        = (words[5]>>12)&0xF  #I'm not sure what this is
+        self.id           = (self.words[4]>>8)&0x7F
+        self.track        = (self.words[5]>>12)&0xF  #I'm not sure what this is
 
     def decode_1011( self ):
         #reference data_format_v12.pdf
@@ -786,8 +816,5 @@ class LocFile:
 
 if __name__ == '__main__':
     #do a quick test
-
-    lmaRawData = RawLMA( '../../not_in_distro/example_data/LW_WestTexas_Llano_160908_012000.dat' )
-    for i in range( 1, len( lmaRawData.statusLocations ) ):
-        df, statusPacket = lmaRawData.read_frame( i )
-    
+    #these tests are in test_io right now, they may get moved in the future
+    print ('check out test_io if you wanna test this stuff')

@@ -36,9 +36,14 @@ for i in range( 601 ):
             #great, now we don't have to loop over all the statuses
             iFrame = lmaFile.frameEpochs[epoch]
             lmaFrame = lmaFile.read_frame( iFrame )
-            frames.append( lmaFrame )
+            
             #create station from frame information
             stations.append( raw_io.Station( id=lmaFrame.id, geodetic=lmaFrame.geodetic, cartesian=lmaFrame.cartesian, delay=0) )
+            #decimate the frame
+            lmaFrame.decimate( 2000000 )
+
+            #append frame to list, for reasons
+            frames.append( lmaFrame )
         #else, this epoch doesn't exist, boo
 
     #all of the epochs should have 7 files, 
