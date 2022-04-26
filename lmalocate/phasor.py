@@ -99,7 +99,6 @@ class Phasor( ):
             id = self.sensorIds[i]
             #calculate the propagation time
             dt = self.propagationModel( self, self.frames[id] )
-            print( '%s - %i'%(id, dt) )
 
             #extend the sortedPeaks array
             N = len( self.sortedPeaks )
