@@ -36,6 +36,8 @@ for iLoop in range( 10 ):
         if epoch in lmaFile.frameEpochs:
             iFrame = lmaFile.frameEpochs[epoch]
             frame = lmaFile.read_frame( iFrame )
+            #decimate the crap of out this so we don't have too many initial guesses and everything is fastpanda
+            frame.decimate( 2000000 )
             #frame goes into dict
             frames[ frame.id ] = frame
     
