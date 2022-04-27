@@ -149,8 +149,9 @@ class Phasor( ):
                 iGuess += 1
 
 class Solution():
-    def __init__(self, peaks, loc=None, propagationModel=None, geodetic=None, cartesian=None, phasor=None ):
+    def __init__(self, peaks, nano=0, loc=None, propagationModel=None, geodetic=None, cartesian=None, phasor=None ):
         self.peaks     = peaks
+        self.nano      = nano
         if phasor != None:
             #we can construct stuff from the parent phasor
             self.parentPhasor = phasor
@@ -180,11 +181,14 @@ class Solution():
 
         #loop over peaks and apply the propagationModel to each
         resid = []
+        resid = np.zeros( len( self.selectedPeaks) )
+        i = 0
         for peak in self.selectedPeaks:
             #ugh, I need to convert the numerical id to a ascii id for this
             id = chr( peak[1] )
-            dt = peak[2] - self.propagationModel( target, self.loc.sensors[id] )
-            resid.append( dt )
+            dt = peak[2] - self.propagationModel( target, self.loc.sensors[id] ) - self.nano
+            resid[i] = dt
+            i += 1
         
         return resid
             
