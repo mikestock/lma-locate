@@ -167,7 +167,17 @@ class Solution():
             self.cartesian = cartesian
 
         self.select_peaks()
-        # self.resid = self.calc_residual() 
+        self.update()
+
+    def update(self):
+        """
+        calculate various helper paramters, like the resilual, and 'quality'
+        eventually this will probably do some work to make sure there is a geodetic location
+        """
+
+        self.resid   = self.calc_residual() 
+        # self.quality = len(self.selectedPeaks)
+        self.quality = self.calc_quality()
 
     def calc_residual( self, target=None ):
         """
@@ -191,11 +201,24 @@ class Solution():
             i += 1
         
         return resid
-            
+    
+    def calc_quality( self ):
+        """
+        used mostly for sorting, this quality metric should not be used for filtering
+        """
+        #get the 5th highest residual.  
+        if len(self.resid) < 5:
+            #that's a problem actually
+            r5 = abs(self.resid).max() * 2
+        else:
+            r5 = sorted(abs(self.resid))[4]
+        
+        return len( self.selectedPeaks ) / r5 * RmsTiming
+    
 
     def select_peaks(self, nearest=False):
         #we always include the first peak
-        self.selectedPeaks = [ self.peaks[0] ]
+        selectedPeaks = [ self.peaks[0] ]
         selectedSensors = {self.peaks[0][1]}
         for i in range( 1, len( self.peaks) ):
             #use each sensor once
@@ -210,5 +233,18 @@ class Solution():
             
             #we've found the best peak, might be the same one we started with
             #add it to the list
-            self.selectedPeaks.append( bestPeak )
+            selectedPeaks.append( bestPeak )
             selectedSensors.add( bestPeak[1] )  #this is a set, so we don't use 2 of the same sensor
+        self.selectedPeaks = np.array( selectedPeaks )
+
+    def __lt__( self, other ):
+        """
+        we want the default sort order to have the 'best' solutions at the beginning of the list
+        so, we're reversing the sort order here
+        """
+        return self.quality > other.quality
+    
+    def __repr__( self ):
+        #TODO - finish this method
+        return 'Solution: %8.6f'%(self.quality)
+

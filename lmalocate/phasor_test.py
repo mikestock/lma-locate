@@ -47,13 +47,18 @@ for iLoop in range( 10 ):
     p = phasor.Phasor( frames, locFile=locFile, cartesian=locFile.network.cartesian, windowLength=windowLength )
 
     #for each guess, make a solution
+    solutions = []
     for guess in p.guesses:
         #the guess is an array of indices, pull the peak information
         peaks = p.sortedPeaks[guess]
         #we need to get the time of the event from this
         nano = np.median( peaks[:,0] )
         s = phasor.Solution( peaks, nano, phasor=p )
-        print ( '%9i'%np.sqrt((s.calc_residual()**2).sum()) )
+        solutions.append( s )
+        # print ( '%9i'%np.sqrt((s.calc_residual()**2).sum()) )
 
+    solutions.sort()
+    for s in solutions:
+        print (s)
     
 

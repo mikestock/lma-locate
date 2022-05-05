@@ -15,3 +15,7 @@ Rpole = 6356752.  #meters (polar Earth radius)
 Requa = 6378137.  #meters (equatorial Earth radius)
 Eflattening = 0.0033528599338647    #used in some eliptical calculations, (1-f) = Requa/Rpole
 Earc  = 111195.  #meters/degree (Earth mean arclength)
+
+###
+# network parameters
+RmsTiming = 70  #nanoseconds expected rms error in timeing
