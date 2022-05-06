@@ -191,7 +191,7 @@ def vincenty( double lt1, double ln1, double lt2, double ln2 ):
         if abs(Lambda - LambdaPrev) < CONVERGENCE_THRESHOLD:
             break  # successful convergence
     else:
-        return None  # failure to converge
+        return -1.0  # failure to converge
 
     cdef double uSq, A, B, deltaSigma, s
 

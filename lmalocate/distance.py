@@ -122,3 +122,36 @@ def pyVincenty( lt1, ln1, lt2, ln2 ):
     s = Rpole * A * (sigma - deltaSigma)
 
     return s
+
+def distance3d( D, h ):
+    if Cython:
+        return cdistance.distance3d( D, h )
+    else:
+        return pyDistance3d( D, h )
+
+def pyDistance3d( D, h ):
+    """
+    Applies a geometric correction for calculating slant distance 
+    between two points separated by distance D along the surface 
+    of the Earth and height h
+    The correction assumes a spherical Earth, but the approximation 
+    essentially cancels out, maintaining high accuracy results
+
+    input:  Geodesic distance, and height above surface
+    output: 3D distance in meters
+    """
+
+    #calculate the tangent angle based on h
+    R = math.sqrt( 2*Re*h + h*h )
+    tangentAngle = math.asin( R/(Re+h) )
+
+    if tangentAngle > D/Re:
+        #we use law of cosines
+        theta = D/Re
+        R1 = Re
+        R2 = Re+h
+        return math.sqrt( R1*R1 + R2*R2 - 2*R1*R2*math.cos(theta) )
+    else:
+        #we use peicewise distance
+        s = Re*tangentAngle
+        return D-s+R
